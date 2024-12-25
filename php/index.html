@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Outil de Recherche de Mots</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+
+        /* Constrain the whole content in a container with max-width */
+        .container {
+            max-width: 1000px; /* Set to 1000px width */
+            margin: 0 auto; /* Center it on the page */
+            padding: 10px;
+        }
+
+        .search-section {
+            display: inline-block;
+            vertical-align: top;
+            width: 45%;
+            margin: 5px;
+        }
+
+        .result-section {
+            width: 90%;
+            margin: 20px auto;
+        }
+
+        @media (max-width: 768px) {
+            .search-section {
+                display: block;
+                width: 100%;
+                margin: 10px 0;
+            }
+
+            .result-section {
+                width: 100%;
+            }
+        }
+
+        button {
+            padding: 10px;
+            font-size: 16px;
+        }
+
+        #results {
+            list-style-type: none;
+        }
+
+        #results li {
+            padding: 5px;
+        }
+		
+		.results-wrapper {
+			display: flex;
+			justify-content: space-between;
+			align-items: center; /* Ensure both words and bars are vertically aligned */
+			width: 100%;
+			max-width: 300px; /* Adjust the overall width to make the gap smaller */
+			margin: 0; /* Center the whole wrapper */
+		}
+
+		.words-column {
+			display: flex;
+			flex-direction: column;
+			justify-content: center;
+			align-items: flex-end; /* Align words to the right */
+			width: 200px; /* Fixed width for the words */
+			margin-right: 20px; /* Reduce the gap between words and bars */
+		}
+
+		.bars-column {
+			display: flex;
+			flex-direction: column;
+			justify-content: center;
+			align-items: flex-start; /* Align bars to the left */
+			width: 200px; /* Fixed width for the bars */
+			margin-top: 10px;
+		}
+
+        #infoText {
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-top: 10px;
+            background-color: #f9f9f9;
+			font-size : 12px;
+            max-width: 900px;
+        }
+
+    </style>
+    <script>
+
+        // Load the XML when the page loads
+        window.onload = function () {
+			updateSyllableValue(document.getElementById("syllableSlider").value);
+        }
+
+		function updateSyllableValue(value) {
+			document.getElementById("syllableValue").textContent = value;
+		}
+
+		async function performSearch() {
+			const loadingSpinner = document.getElementById("loadingSpinner");
+			loadingSpinner.style.display = "block"; // Show spinner
+		
+			try {
+				// Collect search criteria
+				const syllables = Array.from(document.querySelectorAll('input[name="syllables"]:checked')).map(cb => cb.value).join(',');
+				const natures = Array.from(document.querySelectorAll('input[name="nature"]:checked')).map(cb => cb.value).join(',');
+				const rhymeWith = document.getElementById("rhymeWith").value.trim();
+				const semanticallyClose = document.getElementById("semanticallyClose").value.trim();
+				const syllableSlider = document.getElementById("syllableSlider").value;
+				const startsWith = document.getElementById("startsWith").value.trim().toLowerCase();
+				const genre = document.querySelector('input[name="genre"]:checked')?.value || ''; // Single selection
+				const nombre = document.querySelector('input[name="nombre"]:checked')?.value || ''; // Single selection
+				const reverseVectors = document.getElementById("reverseVectors").checked ? '1' : '0'; // Get the value of the checkbox				
+				// Collect selected frequency ranges
+				const selectedRanges = Array.from(document.querySelectorAll('.search-section input[type="checkbox"]:checked'))
+					.filter(cb => cb.id.startsWith('freq')) // Only include frequency checkboxes
+					.map(cb => frequencyMap[cb.value]);     // Map to numerical ranges
+				// Convert ranges into a query parameter
+				const frequencies = selectedRanges.map(range => `${range.min}-${range.max}`).join(',');
+
+
+				// Build query parameters
+				const params = new URLSearchParams({
+					syllables,
+					natures,
+					rhymeWith,
+					semanticallyClose,
+					syllableSlider,
+					startsWith,
+					genre,
+					nombre,
+					frequencies,
+					reverseVectors
+				});
+
+				// Make the AJAX request to search.php
+				const response = await fetch('search.php', {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/x-www-form-urlencoded',
+					},
+					body: params.toString(),
+				});
+
+				const data = await response.json();
+				const results = data.results || [];
+				const warnings = data.warnings || {};
+				
+				 const debugLogEntry = results.find(item => item.debugLog); // Find the item with a debugLog key
+				 document.getElementById("debugLog").innerHTML = debugLogEntry ? debugLogEntry.debugLog : "";
+				
+				// Display warnings if any
+				if (warnings.rhymeWarning) rhymeWarning.textContent = warnings.rhymeWarning;
+				else rhymeWarning.textContent = ""; // Clear previous warning
+
+				if (warnings.semanticWarning) semanticWarning.textContent = warnings.semanticWarning;
+				else semanticWarning.textContent = ""; // Clear previous warning
+
+				// Handle no results
+				if (!results.length) {
+					document.querySelector(".words-column").textContent = "No results found.";
+				}				
+				
+				// Prepare data for displayResults
+				const words = results.map(result => ({
+					word: result.word,
+					score: result.score
+				}));
+				const scores = results.map(result => result.score);
+
+				// Display the results
+				displayResults(words, scores);
+				
+			} catch (error) {
+				console.error("Error:", error);
+				const outputElement = document.querySelector(".words-column");
+				if (outputElement) {
+					outputElement.textContent = "An error occurred while fetching data.";
+				}
+			} finally {
+				loadingSpinner.style.display = "none"; // Hide spinner
+			}
+		}
+
+		// Display results
+		function displayResults(results, scores) {
+			const wordsColumn = document.querySelector(".words-column");
+			const barsColumn = document.querySelector(".bars-column");
+			wordsColumn.innerHTML = "";  // Clear previous words
+			barsColumn.innerHTML = "";   // Clear previous bars
+
+			results.forEach((result, index) => {
+				const word = result.word;
+				const score = scores[index];
+
+				// Create an element for the word
+				let wordElement = document.createElement("div");
+				wordElement.textContent = word;
+				wordElement.style.height = "10px";  // Fixed height
+				wordElement.style.marginBottom = "5px";  // Ensure consistent spacing
+				wordElement.style.textAlign = "right";  // Align word to the right
+
+				// Create an element for the proximity score (as a colored bar)
+				let scoreElement = document.createElement("div");
+				scoreElement.style.width = getBarWidth(score) + "px";  // Bar width
+				scoreElement.style.height = "10px";  // Fixed height for the bar
+				scoreElement.style.backgroundColor = getScoreColor(score);  // Bar color
+				scoreElement.style.marginBottom = "5px";  // Ensure consistent spacing for the bars
+
+				// Append the word to the words column
+				wordsColumn.appendChild(wordElement);
+
+				// Append the bar to the bars column
+				barsColumn.appendChild(scoreElement);
+			});
+		}
+
+		// Function to return a color based on proximity score
+		function getScoreColor(score) {
+			if (score < 0.25) return "green";       // High proximity
+			if (score < 0.75) return "yellow";      // Medium proximity
+			return "red";                         // Low proximity
+		}
+
+		// Function to return the width of the proximity bar based on the score
+		function getBarWidth(score) {
+			const maxScore = 1.0;  // Define the maximum score for scaling
+			const minWidth = 10;   // Minimum width for a poor score
+			const maxWidth = 150;  // Maximum width for a good score
+			
+			let width = maxWidth - (score * (maxWidth - minWidth) / maxScore);
+			
+			// Ensure the bar width doesn't get negative or too small
+			return Math.max(minWidth, Math.min(width, maxWidth));
+		}
+		
+		const frequencyMap = {
+			courant: { min: 10, max: Infinity },
+			peu_courant: { min: 1, max: 10 },
+			rare: { min: 0, max: 1 }
+		};
+
+    </script>
+</head>
+<body>
+    <div class="container">
+        <h1>Outil de recherche de mots</h1>
+
+        <div class="search-section">
+            <h3>Nombre de syllabes :</h3>
+            <input type="checkbox" name="syllables" value="1" checked> 1<br>
+            <input type="checkbox" name="syllables" value="2" > 2<br>
+            <input type="checkbox" name="syllables" value="3" > 3<br>
+            <input type="checkbox" name="syllables" value="4" > 4<br>
+            <input type="checkbox" name="syllables" value="5" > 5+<br>
+        </div>
+
+        <div class="search-section">
+            <h3>Nature :</h3>
+            <input type="checkbox" name="nature" value="noun" checked> Nom<br>
+            <input type="checkbox" name="nature" value="verb" > Verbe<br>
+            <input type="checkbox" name="nature" value="adjective" > Adjectif<br>
+            <input type="checkbox" name="nature" value="adverb" > Adverbe<br>
+        </div>
+				
+		<div class="search-section">
+			<h3>Genre :</h3>
+			<label>
+				<input type="radio" name="genre" value="m"> Masculin
+			</label>
+			<label>
+				<input type="radio" name="genre" value="f"> Féminin
+			</label>
+			<label>
+				<input type="radio" name="genre" value="" checked> Tous
+			</label>
+		</div>
+
+		<div class="search-section">
+			<h3>Nombre :</h3>
+			<label>
+				<input type="radio" name="nombre" value="s"> Singulier
+			</label>
+			<label>
+				<input type="radio" name="nombre" value="p"> Pluriel
+			</label>
+			<label>
+				<input type="radio" name="nombre" value="" checked> Tous
+			</label>
+		</div>
+
+		<div class="search-section">
+			<h3>Fréquence :</h3>
+			<label>
+				<input type="checkbox" id="freqCourant" value="courant" checked> Courant
+			</label>
+			<label>
+				<input type="checkbox" id="freqPeuCourant" value="peu_courant" checked> Peu courant
+			</label>
+			<label>
+				<input type="checkbox" id="freqRare" value="rare" checked> Plus rare
+			</label>
+		</div>
+		
+		<div class="search-section">
+			<h3>Évoque tel autre mot :</h3>
+			<input type="text" id="semanticallyClose" placeholder="un mot de référence" value="" ></input>
+			<input type="checkbox" id="reverseVectors" value="reverse"></input> inverser les vecteurs<br/>
+			<div id="semanticWarning" style="color:red;"></div>
+		</div>
+
+        <div class="search-section">
+            <h3>Rime avec :</h3>
+            <input type="text" id="rhymeWith" placeholder="un mot pour rimer avec" value="" ></input><br>
+			<div id="rhymeWarning" style="color:red;"></div><br/>
+			<label for="syllableSlider">sur combien de phonèmes au minimum : <span id="syllableValue">0</span></label><br/>
+			<input type="range" id="syllableSlider" name="syllableSlider" min="0" max="5" value="0" oninput="updateSyllableValue(this.value)">
+        </div>
+		
+		<div class="search-section">
+			<h3>Commence par :</h3>
+			<input type="text" id="startsWith" placeholder="les premières lettres"></input>
+		</div>		
+
+		<br/>
+		
+        <div class="search-section">
+            <button onclick="performSearch()">Rechercher</button>
+        </div>
+
+		<div id="debugLog"></div>
+		
+		<div id="loadingSpinner" style="display: none;">Attendez...</div>
+
+        <div class="result-section">
+            <h3>Résultats</h3>
+			<div class="results-wrapper">
+				<div class="words-column">
+					<!-- Words will go here -->
+				</div>
+				<div class="bars-column">
+					<!-- Bars will go here -->
+				</div>
+			</div>
+        </div>
+    </div>
+
+</body>
+</html>

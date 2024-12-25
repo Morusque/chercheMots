@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Outil de Recherche de Mots</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+
+        /* Constrain the whole content in a container with max-width */
+        .container {
+            max-width: 1000px; /* Set to 1000px width */
+            margin: 0 auto; /* Center it on the page */
+            padding: 10px;
+        }
+
+        .search-section {
+            display: inline-block;
+            vertical-align: top;
+            width: 45%;
+            margin: 5px;
+        }
+
+        .result-section {
+            width: 90%;
+            margin: 20px auto;
+        }
+
+        @media (max-width: 768px) {
+            .search-section {
+                display: block;
+                width: 100%;
+                margin: 10px 0;
+            }
+
+            .result-section {
+                width: 100%;
+            }
+        }
+
+        button {
+            padding: 10px;
+            font-size: 16px;
+        }
+
+        #results {
+            list-style-type: none;
+        }
+
+        #results li {
+            padding: 5px;
+        }
+		
+		.results-wrapper {
+			display: flex;
+			justify-content: space-between;
+			align-items: center; /* Ensure both words and bars are vertically aligned */
+			width: 100%;
+			max-width: 300px; /* Adjust the overall width to make the gap smaller */
+			margin: 0; /* Center the whole wrapper */
+		}
+
+		.words-column {
+			display: flex;
+			flex-direction: column;
+			justify-content: center;
+			align-items: flex-end; /* Align words to the right */
+			width: 200px; /* Fixed width for the words */
+			margin-right: 20px; /* Reduce the gap between words and bars */
+		}
+
+		.bars-column {
+			display: flex;
+			flex-direction: column;
+			justify-content: center;
+			align-items: flex-start; /* Align bars to the left */
+			width: 200px; /* Fixed width for the bars */
+		}
+
+        #infoText {
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-top: 10px;
+            background-color: #f9f9f9;
+			font-size : 12px;
+            max-width: 900px;
+        }
+
+    </style>
+    <script>
+        let xmlData = null;
+
+        // Load the XML file asynchronously
+        async function loadXML() {
+            const response = await fetch('words_database.xml');
+            const xmlText = await response.text();
+            const parser = new DOMParser();
+            xmlData = parser.parseFromString(xmlText, "text/xml");
+        }
+
+        // Filter words by number of syllables
+        function filterBySyllables(syllablesSelected) {
+            const words = xmlData.getElementsByTagName("word");
+            const results = [];
+
+            for (let word of words) {
+                const syllables = word.getAttribute("syllables");
+                if (syllables && syllablesSelected.includes(parseInt(syllables))) {
+                    results.push(word);
+                }
+            }
+
+            return results;
+        }
+
+        // Filter words by nature
+        function filterByNature(naturesSelected) {
+            const words = xmlData.getElementsByTagName("word");
+            const results = [];
+
+            for (let word of words) {
+                if (naturesSelected.includes(word.getAttribute("nature"))) {
+                    results.push(word);
+                }
+            }
+
+            return results;
+        }
+
+        // Find words that rhyme based on last n syllables
+		function findRhymes(wordToRhyme, syllablesCount) {
+		
+			wordToRhyme = wordToRhyme.toLowerCase();
+
+			const words = xmlData.getElementsByTagName("word");
+			const results = [];
+
+			if (syllablesCount == 0) {
+				return Array.from(words); // Return all words
+			}
+			
+			// Step 1: Find the pronunciation(s) of wordToRhyme in the database
+			const wordToRhymeElement = Array.from(words).find(w => w.getAttribute("word") === wordToRhyme.toLowerCase());
+			let wordToRhymePronunciations = [];
+			
+			if (wordToRhymeElement) {
+				const pronunciationElements = wordToRhymeElement.getElementsByTagName("pronunciation");
+				
+				// Collect all pronunciations for the word
+				for (let pronunciationElement of pronunciationElements) {
+					wordToRhymePronunciations.push(pronunciationElement.textContent.trim());
+				}
+			}
+			
+			if (wordToRhymePronunciations.length === 0) {
+				// If no pronunciation is found, display a warning and consider every word as ok
+				rhymeWarning.textContent = "Prononciation pour le mot \""+wordToRhyme+"\" introuvable.";
+				return Array.from(words); // Return all words
+			}
+			
+			// Step 2: Iterate over each word in the XML database and compare pronunciations
+			for (let word of words) {
+				const pronunciationElements = word.getElementsByTagName("pronunciation");
+				let wordPronunciations = [];
+				
+				// Collect all pronunciations for the current word
+				for (let pronunciationElement of pronunciationElements) {
+					wordPronunciations.push(pronunciationElement.textContent.trim());
+				}
+
+				// Step 3: Compare each pronunciation of the current word with each pronunciation of wordToRhyme
+				for (let wordToRhymePronunciation of wordToRhymePronunciations) {
+					const wordToRhymePhonemes = wordToRhymePronunciation.split(' ');
+					const wordToRhymeLastPhonemes = wordToRhymePhonemes.slice(-syllablesCount).join(' '); // Get last n phonemes
+
+					for (let wordPronunciation of wordPronunciations) {
+						const wordPhonemes = wordPronunciation.split(' ');
+						const wordLastPhonemes = wordPhonemes.slice(-syllablesCount).join(' '); // Get last n phonemes
+
+						// Step 4: If any of the pronunciations match, add the word to results
+						if (wordLastPhonemes === wordToRhymeLastPhonemes) {
+							results.push(word);
+							break; // No need to check further once a match is found
+						}
+					}
+				}
+			}
+
+			return results;
+		}
+
+        // Compute proximity between word2vec vectors (dummy example here)
+        function computeVectorDistance(vectorA, vectorB) {
+            let sum = 0;
+            for (let i = 0; i < vectorA.length; i++) {
+                sum += Math.pow(vectorA[i] - vectorB[i], 2);
+            }
+            return Math.sqrt(sum);
+        }
+ 
+		// Find semantically close words using word2vec
+		function findSemanticallyCloseWords(results, referenceWord) {
+			const word2vecWarning = document.getElementById("semanticWarning");
+			word2vecWarning.textContent = "";
+
+			let referenceVector = null;
+			let referenceWordFound = false;
+
+			// Make the reference word lowercase to compare with lowercase word attributes
+			referenceWord = referenceWord.toLowerCase().trim();
+
+			// Search for the reference word in the entire database (xmlData)
+			const allWords = xmlData.getElementsByTagName("word");  // Search through the whole XML database
+			for (let word of allWords) {
+				const wordAttr = word.getAttribute("word").toLowerCase().trim();
+				if (wordAttr === referenceWord) {
+					referenceWordFound = true;
+					const vectorNode = word.getElementsByTagName("vectors")[0];
+					if (vectorNode) {
+						referenceVector = vectorNode.textContent.trim().split(" ").map(parseFloat);
+					}
+					break;
+				}
+			}
+
+			// If no reference word is found or no vector, display a warning
+			if (!referenceWordFound) {
+				word2vecWarning.textContent = `Mot "${referenceWord}" non trouvé dans la base de données.`;
+				return results;  // Return unfiltered results
+			}
+
+			if (!referenceVector) {
+				word2vecWarning.textContent = `Aucun vecteur trouvé pour le mot "${referenceWord}".`;
+				return results;  // Return unfiltered results
+			}
+
+			// Compute proximity scores for each word in the filtered results
+			const resultsWithScores = results.map(word => {
+				const vectorNode = word.getElementsByTagName("vectors")[0];
+				if (vectorNode) {
+					const wordVector = vectorNode.textContent.trim().split(" ").map(parseFloat);
+					// let distance = computeVectorDistance(referenceVector, wordVector);
+					let distance = (1 - computeCosineSimilarity(referenceVector, wordVector))*2.0;
+					return { word, distance };
+				} else {
+					return { word, distance: Infinity };  // No vector data, assign max distance
+				}
+			});
+
+			// Sort results by distance (smallest to largest)
+			resultsWithScores.sort((a, b) => a.distance - b.distance);
+
+			// Return sorted words (keeping word elements)
+			return resultsWithScores;
+		}
+
+		function computeVectorDistance(vector1, vector2) {
+			let sum = 0;
+			for (let i = 0; i < vector1.length; i++) {
+				const diff = vector1[i] - vector2[i];
+				sum += diff * diff;
+			}
+			return Math.sqrt(sum);  // Euclidean distance
+		}
+		
+		function computeCosineSimilarity(vector1, vector2) {
+			let dotProduct = 0;
+			let magnitude1 = 0;
+			let magnitude2 = 0;
+			
+			for (let i = 0; i < vector1.length; i++) {
+				dotProduct += vector1[i] * vector2[i];
+				magnitude1 += vector1[i] * vector1[i];
+				magnitude2 += vector2[i] * vector2[i];
+			}
+			
+			magnitude1 = Math.sqrt(magnitude1);
+			magnitude2 = Math.sqrt(magnitude2);
+
+			// If magnitudes are zero, return zero to avoid division by zero
+			if (magnitude1 === 0 || magnitude2 === 0) {
+				return 0;
+			}
+
+			return dotProduct / (magnitude1 * magnitude2);  // Cosine similarity
+		}
+		
+		// Display results
+		function displayResults(results, scores) {
+			const wordsColumn = document.querySelector(".words-column");
+			const barsColumn = document.querySelector(".bars-column");
+			wordsColumn.innerHTML = "";  // Clear previous words
+			barsColumn.innerHTML = "";   // Clear previous bars
+
+			results.forEach((result, index) => {
+				const word = result.getAttribute("word");
+				const score = scores[index];
+
+				// Create an element for the word
+				let wordElement = document.createElement("div");
+				wordElement.textContent = word;
+				// wordElement.textContent = " "+score;
+				wordElement.style.height = "10px";  // Fixed height
+				wordElement.style.marginBottom = "5px";  // Ensure consistent spacing
+				wordElement.style.textAlign = "right";  // Align word to the right
+
+				// Create an element for the proximity score (as a colored bar)
+				let scoreElement = document.createElement("div");
+				scoreElement.style.width = getBarWidth(score) + "px";  // Bar width
+				scoreElement.style.height = "10px";  // Fixed height for the bar
+				scoreElement.style.backgroundColor = getScoreColor(score);  // Bar color
+				scoreElement.style.marginBottom = "5px";  // Ensure consistent spacing for the bars
+
+				// Append the word to the words column
+				wordsColumn.appendChild(wordElement);
+
+				// Append the bar to the bars column
+				barsColumn.appendChild(scoreElement);
+			});
+		}
+
+		// Function to return a color based on proximity score
+		function getScoreColor(score) {
+			if (score < 0.85) return "green";       // High proximity
+			if (score < 1.15) return "yellow";      // Medium proximity
+			return "red";                         // Low proximity
+		}
+
+		// Function to return the width of the proximity bar based on the score
+		function getBarWidth(score) {
+			const maxScore = 2.0;  // Define the maximum score for scaling
+			const minWidth = 30;   // Minimum width for a poor score
+			const maxWidth = 200;  // Maximum width for a good score
+			
+			let width = maxWidth - (score * (maxWidth - minWidth) / maxScore);
+			
+			// Ensure the bar width doesn't get negative or too small
+			return Math.max(minWidth, Math.min(width, maxWidth));
+		}
+		
+		// Function to filter by frequency range
+		function filterByFrequency(results) {
+			const freqCourant = document.getElementById("freqCourant").checked;
+			const freqPeuCourant = document.getElementById("freqPeuCourant").checked;
+			const freqRare = document.getElementById("freqRare").checked;
+
+			// If no frequency checkboxes are selected, skip filtering
+			if (!freqCourant && !freqPeuCourant && !freqRare) {
+				return results;
+			}
+
+			// Filter results based on the selected frequency ranges
+			return results.filter(word => {
+				const frequency = parseFloat(word.getAttribute("freq"));
+				
+				if (freqCourant && frequency > 10) return true;
+				if (freqPeuCourant && frequency >= 1 && frequency <= 10) return true;
+				if (freqRare && frequency >= 0 && frequency < 1) return true;
+
+				return false;
+			});
+		}
+		
+		// Fonction de filtrage par genre et nombre
+		function filterByGenreAndNombre(results) {
+			const genreSelected = document.querySelector('input[name="genre"]:checked').value;
+			const nombreSelected = document.querySelector('input[name="nombre"]:checked').value;
+
+			// Filtrer les résultats si un genre ou un nombre est sélectionné
+			return results.filter(word => {
+				const genre = word.getAttribute("genre");
+				const nombre = word.getAttribute("nombre");
+
+				// Filtrer par genre si une option est sélectionnée
+				if (genre!=null && genreSelected && genre !== genreSelected) return false;
+
+				// Filtrer par nombre si une option est sélectionnée
+				if (nombre!=null && nombreSelected && nombre !== nombreSelected) return false;
+
+				return true;
+			});
+		}
+
+		async function performSearch() {
+			rhymeWarning.textContent = "";
+
+			// Get all words from the XML
+			let results = Array.from(xmlData.getElementsByTagName("word"));  // Start with all words
+			let scores = [];
+
+			// Collect search criteria
+			const syllablesSelected = Array.from(document.querySelectorAll('input[name="syllables"]:checked')).map(cb => parseInt(cb.value));
+			const naturesSelected = Array.from(document.querySelectorAll('input[name="nature"]:checked')).map(cb => cb.value);
+			const rhymeWith = document.getElementById("rhymeWith").value.trim();
+			const semanticallyClose = document.getElementById("semanticallyClose").value.trim();
+			const syllableSlider = document.getElementById("syllableSlider").value;
+			const startsWith = document.getElementById("startsWith").value.trim().toLowerCase();
+
+			// Filter by "Starts With"
+			if (startsWith) {
+				results = results.filter(word => {
+					const wordText = word.getAttribute("word");
+					return wordText && wordText.toLowerCase().startsWith(startsWith);
+				});
+			}
+			
+			// Filter by syllables
+			if (syllablesSelected.length) {
+				results = results.filter(word => {
+					const syllables = word.getAttribute("syllables");
+					return syllables && syllablesSelected.includes(parseInt(syllables));
+				});
+			}
+
+			// Filter by nature (e.g., noun, verb, etc.)
+			if (naturesSelected.length) {
+				results = results.filter(word => naturesSelected.includes(word.getAttribute("nature")));
+			}
+
+			// Filter by rhymes (if a word to rhyme with is provided)
+			if (rhymeWith) {
+				const rhymeResults = findRhymes(rhymeWith, syllableSlider);
+				results = results.filter(word => rhymeResults.includes(word));
+			}
+
+			// Filter by semantic proximity (if a reference word is provided)
+			if (semanticallyClose) {
+				let resultsWithScore = findSemanticallyCloseWords(results, semanticallyClose);
+				results = resultsWithScore.map(result => result.word); // Extract just the words for further filtering
+				scores = resultsWithScore.map(result => result.distance); // Save the scores to use in display
+			}
+			
+			// Filter by frequency
+			results = filterByFrequency(results);		
+
+			// Filtrer par genre et nombre
+			results = filterByGenreAndNombre(results);
+
+			// Afficher les résultats
+			displayResults(results, scores);
+			
+			// Filtrage des doublons par le meilleur score
+			results = filterDuplicatesByBestScore(results, scores);
+
+			// Display results
+			displayResults(results, scores);
+
+		}
+
+		// Supprimer les doublons et conserver celui avec le meilleur score
+		function filterDuplicatesByBestScore(results, scores) {
+			let uniqueResults = [];
+			let seenWords = new Map();
+
+			// Parcourir tous les résultats
+			for (let i = 0; i < results.length; i++) {
+				const word = results[i].getAttribute("word");
+				const score = scores[i];
+
+				// Si le mot n'a pas encore été vu ou si le score actuel est meilleur, mettre à jour
+				if (!seenWords.has(word) || score < seenWords.get(word).score) {
+					seenWords.set(word, { element: results[i], score: score });
+				}
+			}
+
+			// Construire la liste des mots uniques avec le meilleur score
+			for (let entry of seenWords.values()) {
+				uniqueResults.push(entry.element);
+			}
+
+			return uniqueResults;
+		}
+
+		function updateSyllableValue(value) {
+			document.getElementById("syllableValue").textContent = value;
+		}
+		
+        // Load the XML when the page loads
+        window.onload = function () {
+			updateSyllableValue(document.getElementById("syllableSlider").value);
+            loadXML();
+        }
+		
+    </script>
+</head>
+<body>
+    <div class="container">
+        <h1>Outil de recherche de mots</h1>
+
+        <div class="search-section">
+            <h3>Nombre de syllabes :</h3>
+            <input type="checkbox" name="syllables" value="1"> 1<br>
+            <input type="checkbox" name="syllables" value="2"> 2<br>
+            <input type="checkbox" name="syllables" value="3"> 3<br>
+            <input type="checkbox" name="syllables" value="4"> 4<br>
+            <input type="checkbox" name="syllables" value="5"> 5+<br>
+        </div>
+
+        <div class="search-section">
+            <h3>Nature :</h3>
+            <input type="checkbox" name="nature" value="noun"> Nom<br>
+            <input type="checkbox" name="nature" value="verb"> Verbe<br>
+            <input type="checkbox" name="nature" value="adjective"> Adjectif<br>
+            <input type="checkbox" name="nature" value="adverb"> Adverbe<br>
+        </div>
+				
+		<div class="search-section">
+			<h3>Genre :</h3>
+			<label>
+				<input type="radio" name="genre" value="m"> Masculin
+			</label>
+			<label>
+				<input type="radio" name="genre" value="f"> Féminin
+			</label>
+			<label>
+				<input type="radio" name="genre" value="" checked> Tous
+			</label>
+		</div>
+
+		<div class="search-section">
+			<h3>Nombre :</h3>
+			<label>
+				<input type="radio" name="nombre" value="s"> Singulier
+			</label>
+			<label>
+				<input type="radio" name="nombre" value="p"> Pluriel
+			</label>
+			<label>
+				<input type="radio" name="nombre" value="" checked> Tous
+			</label>
+		</div>
+
+		<div class="search-section">
+			<h3>Fréquence :</h3>
+			<label>
+				<input type="checkbox" id="freqCourant" value="courant"> Courant
+			</label>
+			<label>
+				<input type="checkbox" id="freqPeuCourant" value="peu_courant"> Peu courant
+			</label>
+			<label>
+				<input type="checkbox" id="freqRare" value="rare"> Plus rare
+			</label>
+		</div>
+		
+		<div class="search-section">
+			<h3>Évoque tel autre mot :</h3>
+			<input type="text" id="semanticallyClose" placeholder="Entrez un mot de référence">
+			<div id="semanticWarning" style="color:red;"></div> <!-- This warning will display when no vector is found -->
+		</div>
+
+        <div class="search-section">
+            <h3>Rime avec :</h3>
+            <input type="text" id="rhymeWith" placeholder="Entrez un mot pour rimer avec"><br>
+			<div id="rhymeWarning" style="color:red;"></div><br/>
+			<label for="syllableSlider">sur combien de phonèmes au minimum : <span id="syllableValue">0</span></label><br/>
+			<input type="range" id="syllableSlider" name="syllableSlider" min="0" max="5" value="0" oninput="updateSyllableValue(this.value)">
+        </div>
+		
+		<div class="search-section">
+			<h3>Commence par :</h3>
+			<input type="text" id="startsWith" placeholder="Entrez les premières lettres">
+		</div>		
+
+		<br/>
+		
+        <div class="search-section">
+            <button onclick="performSearch()">Rechercher</button>
+        </div>
+
+        <div class="result-section">
+            <h3>Résultats</h3>
+			<div class="results-wrapper">
+				<div class="words-column">
+					<!-- Words will go here -->
+				</div>
+				<div class="bars-column">
+					<!-- Bars will go here -->
+				</div>
+			</div>
+        </div>
+    </div>
+
+</body>
+</html>
