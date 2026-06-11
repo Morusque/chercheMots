@@ -1,0 +1,26 @@
+
+finir de merger les version hors et en ligne, tester
+
+enter = lancer la recherche
+
+au lieu de "inverser les vecteurs" : 
+une liste de plusieurs champs "évoque" et plusieurs "n'évoque pas" (1 de chaque par défaut avec un bouton "+" pour en rajouter)
+
+ajuster le nombre de phonèmes (eg demander 3 phonèmes de rime avec un mot à deux phonèmes (d'un côté ou de l'autre) = 2 max)
+
+pourquoi il n'y a pas "fumée" comme mot?
+
+"commence par" refaire ça façon scrabble avec des * pour les lettres non contraintes
+
+si pas d'évocation ni d'évitement de mots, trier la liste par fréquence dans la langue 
+
+suggestion de mots au cours de la frappe pour certains champs
+
+verbes à l'infinitif sont-ils présents ?
+verbes à l'infinitif séparés des verbes conjugués dans l'interface
+
+retravailler le display de fréquence
+
+refaire le champ de rimes en choisissant les rimes dans une liste (+ suggestion depuis un mot si besoin) ?
+
+scraper cnrtl ?
