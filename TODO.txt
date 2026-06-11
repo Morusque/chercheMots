@@ -4,3 +4,7 @@
 ~14 200 mots sans fréquence connue : d'abord propager/lisser depuis le lemme ou une forme proche quand c'est fiable, puis envisager une source externe type wordfreq. Côté interface, prévoir une option "inclure les fréquences inconnues" au lieu de les assimiler uniquement à 0.
 
 clairement séparer les homographes/homophones pour les fréquences et les natures : par exemple "est" ne devrait pas apparaître comme le nom commun le plus fréquent si la fréquence provient surtout du verbe conjugué. Vérifier les fréquences par catégorie Lexique avant de les copier sur toutes les entrées XML d'une même graphie.
+
+"thé" a seulement /t/ pour prononciation (possiblement symptôme d'un problème plus global)
+
+des avertissements concernant "n'évoque pas" apparaissent dans la section "évoque"
