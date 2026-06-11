@@ -1,10 +1,6 @@
 
-la logique du filtre "nom" est discutable, par exemple "avions" devrait être valide comme un nom au pluriel même si c'est aussi un verbe conjugué
+~9 400 mots restent sans prononciation : ajouter dans build_data.py une propagation morphologique plus large (formes verbales régulières, pluriels/féminins, composés avec tiret comme "couche-tôt"), puis un fallback graphème->phonème offline type phonemizer/espeak. Conserver l'alphabet interne pour les calculs et convertir seulement l'affichage en API/IPA côté interface.
 
-les catégories "singulier" et "pluriel" ne marchent pas toujours bien (à vérifier)
+~14 200 mots sans fréquence connue : d'abord propager/lisser depuis le lemme ou une forme proche quand c'est fiable, puis envisager une source externe type wordfreq. Côté interface, prévoir une option "inclure les fréquences inconnues" au lieu de les assimiler uniquement à 0.
 
-~9 400 mots restent sans prononciation (formes conjuguées rares absentes de cmudict et de Lexique) : envisager une conversion graphème->phonème (règles ou phonemizer/espeak) dans build_data.py
-
-~14 200 mots sans fréquence connue (absents de Lexique) : traités comme "très rares" par le slider, le filtre minimum les exclut dès qu'on le remonte. améliorable avec le G2P ci-dessus ou d'autres sources
-
-clairement séparer les homophones (par exemple "est" ne devrait probablement pas apparaître comme le nom commun le plus fréquent dans la langue car c'est de son homophone verbe conjugué qu'il s'agit)
+clairement séparer les homographes/homophones pour les fréquences et les natures : par exemple "est" ne devrait pas apparaître comme le nom commun le plus fréquent si la fréquence provient surtout du verbe conjugué. Vérifier les fréquences par catégorie Lexique avant de les copier sur toutes les entrées XML d'une même graphie.

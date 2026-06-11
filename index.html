@@ -200,6 +200,13 @@
 
 		// Echelle logarithmique du slider de frequence : 0..600 -> 0.01..10000 occ/million
 		const FREQ_SLIDER_MAX = 600;
+		const PHONEME_IPA = {
+			aa: "a", ai: "ɛ", an: "ɑ̃", au: "ɔ", bb: "b", ch: "ʃ", dd: "d",
+			ee: "ə", ei: "e", eu: "ø", ff: "f", gg: "g", gn: "ɲ", ii: "i",
+			in: "ɛ̃", jj: "ʒ", kk: "k", ll: "l", mm: "m", nn: "n", oe: "œ",
+			on: "ɔ̃", oo: "o", ou: "u", pp: "p", rr: "ʁ", ss: "s", tt: "t",
+			un: "œ̃", uu: "y", uy: "ɥi", vv: "v", ww: "w", yy: "j", zz: "z",
+		};
 
 		// Base de mots chargee en memoire (tableaux paralleles, voir build_data.py)
 		let DB = null;
@@ -468,6 +475,10 @@
 			document.getElementById("freqMaxValue").textContent = formatFreq(sliderToFreq(maxEl.value));
 		}
 
+		function phonemesToIpa(tokens) {
+			return tokens.map(token => PHONEME_IPA[token] || token).join("");
+		}
+
 		// Affiche la terminaison phonetique retenue a cote du champ "rime avec"
 		function updateRhymeEnding() {
 			const div = document.getElementById("rhymeEnding");
@@ -478,15 +489,20 @@
 				return;
 			}
 			const endings = new Set();
-			for (const ri of DB.wordIndex.get(word) || []) {
+			const wordEntries = DB.wordIndex.get(word) || [];
+			for (const ri of wordEntries) {
 				for (const pron of getPronunciations(ri)) {
 					const tokens = pron.split(" ");
-					endings.add(tokens.slice(-Math.min(n, tokens.length)).join(" "));
+					endings.add(phonemesToIpa(tokens.slice(-Math.min(n, tokens.length))));
 				}
 			}
-			div.textContent = endings.size
-				? "terminaison : " + [...endings].map(e => "« " + e + " »").join(" ou ")
-				: "";
+			if (endings.size) {
+				div.textContent = "terminaison : " + [...endings].map(e => "/" + e + "/").join(" ou ");
+			} else if (wordEntries.length) {
+				div.textContent = "prononciation non disponible";
+			} else {
+				div.textContent = "";
+			}
 		}
 
 		function resetSearch() {
