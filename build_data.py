@@ -54,6 +54,11 @@ NATURE_TO_CGRAM = {
     "adjective": {"ADJ"},
     "adverb": {"ADV"},
 }
+CGRAM_TO_NATURE = {
+    cgram: nature
+    for nature, cgrams in NATURE_TO_CGRAM.items()
+    for cgram in cgrams
+}
 
 TEST_WORDS = ["musique", "chanson", "amour", "mer", "acide"]
 TOP_N = 30  # taille des classements compares pour la validation
@@ -146,6 +151,19 @@ def lexique_pron(phon, mapping):
     return " ".join(tokens)
 
 
+def is_valid_lemma(lemma):
+    """Valide un lemme: rejette les artefacts et encodages cassés."""
+    if not lemma or lemma == "":
+        return False
+    if lemma.upper() == lemma and len(lemma) > 1:  # tout en majuscules (artifact)
+        return False
+    if lemma == "=" or lemma == "FALSE":  # artefacts spécifiques
+        return False
+    if "Ã" in lemma or "Â" in lemma:  # encodage UTF-8 cassé
+        return False
+    return True
+
+
 def parse_xml():
     words, lemmes, natures, genres, nombres, syllables, freqs, prons = (
         [], [], [], [], [], [], [], []
@@ -164,6 +182,9 @@ def parse_xml():
         lemme = elem.get("lemme") or ""
         if lemme:
             lemme = "=" if lemme == word else lemme
+            # Rejette les lemmes problématiques à la source
+            if not is_valid_lemma(lemme):
+                lemme = ""
         nature = elem.get("nature") or ""
         if nature not in nature_index:
             nature_index[nature] = len(nature_names)
@@ -201,7 +222,7 @@ def parse_xml():
 
     print(f"Parse XML : {count} mots en {time.time() - t0:.0f}s")
     meta = {
-        "version": 3,
+        "version": 4,
         "count": count,
         "dims": DIMS,
         "natureNames": nature_names,
@@ -229,12 +250,43 @@ def enrich(meta):
     nature_names = meta["natureNames"]
     count = meta["count"]
 
+    def nature_id(name):
+        if name not in nature_names:
+            nature_names.append(name)
+        return nature_names.index(name)
+
     def lexique_rows_for(i):
         """Lignes Lexique du mot, celles de la bonne categorie d'abord."""
         rows = lexique.get(norm(words[i]), [])
         wanted = NATURE_TO_CGRAM.get(nature_names[natures[i]], set())
         matching = [r for r in rows if r["cgram"] in wanted]
         return matching or rows
+
+    # Le XML source classe certains mots-outils comme noms ("dans", etc.).
+    # Quand Lexique connait le mot et ne confirme pas la categorie XML, on
+    # corrige vers la seule categorie supportee par Lexique, ou vers "other".
+    corrected_natures = Counter()
+    other_id = nature_id("other")
+    for i in range(count):
+        rows = lexique.get(norm(words[i]), [])
+        if not rows:
+            continue
+        current = nature_names[natures[i]]
+        wanted = NATURE_TO_CGRAM.get(current)
+        if not wanted or any(row["cgram"] in wanted for row in rows):
+            continue
+        candidates = {
+            CGRAM_TO_NATURE[row["cgram"]]
+            for row in rows
+            if row["cgram"] in CGRAM_TO_NATURE
+        }
+        new_nature = next(iter(candidates)) if len(candidates) == 1 else "other"
+        new_id = nature_id(new_nature) if new_nature != "other" else other_id
+        if natures[i] != new_id:
+            corrected_natures[f"{current}->{new_nature}"] += 1
+            natures[i] = new_id
+    print("Natures corrigees depuis Lexique :",
+          ", ".join(f"{k} {v}" for k, v in corrected_natures.items()) or "aucune")
 
     missing_initial = sum(1 for p in prons if not p)
 
@@ -300,8 +352,10 @@ def enrich(meta):
             continue
         for row in rows:
             if not lemmes[i] and row["lemme"]:
-                lemmes[i] = "=" if row["lemme"] == norm(words[i]) else row["lemme"]
-                fixed["lemme"] += 1
+                candidate_lemma = "=" if row["lemme"] == norm(words[i]) else row["lemme"]
+                if is_valid_lemma(candidate_lemma):
+                    lemmes[i] = candidate_lemma
+                    fixed["lemme"] += 1
             if freqs[i] < 0 and row["freq"] is not None:
                 freqs[i] = row["freq"]
                 fixed["freq"] += 1

@@ -96,7 +96,15 @@
         }
 
         .semantic-field {
+            display: flex;
+            gap: 4px;
+            align-items: center;
             margin-bottom: 4px;
+        }
+
+        .semantic-field input {
+            flex: 1;
+            min-width: 0;
         }
 
         .add-field-button {
@@ -186,7 +194,7 @@
     <script>
 		// Incrementer quand words_meta.json / vectors.bin sont regeneres :
 		// l'URL change et le service worker retelecharge les donnees.
-		const DATA_VERSION = 3;
+		const DATA_VERSION = 4;
 		const MAX_DISPLAYED_RESULTS = 500;
 		const MAX_SUGGESTIONS = 15;
 
@@ -244,12 +252,18 @@
 			}
 
 			// Detection des infinitifs : un verbe est a l'infinitif s'il est son
-			// propre lemme ("=") ou s'il est le lemme d'un autre verbe de la base
+			// propre lemme ("=") ou s'il est le lemme d'un autre verbe de la base.
+			// Heuristique : un infinitif finit par -er, -ir, -re, ou -oir
 			const verbNature = meta.natureNames.indexOf("verb");
 			const verbLemmas = new Set();
+			const infinitiveEndings = /(er|ir|oir|re)$/;  // -er, -ir, -oir, -re
 			for (let i = 0; i < meta.count; i++) {
 				if (meta.natures[i] === verbNature && meta.lemmes[i] && meta.lemmes[i] !== "=") {
-					verbLemmas.add(meta.lemmes[i]);
+					const lemma = meta.lemmes[i].toLowerCase();
+					// Ajoute seulement si ça ressemble à un infinitif
+					if (infinitiveEndings.test(lemma)) {
+						verbLemmas.add(lemma);
+					}
 				}
 			}
 			const isInfinitive = new Uint8Array(meta.count);
@@ -260,7 +274,7 @@
 				}
 			}
 
-			DB = { ...meta, scales, q, wordIndex, verbNature, isInfinitive };
+			DB = { ...meta, scales, q, wordIndex, verbNature, isInfinitive, verbLemmas };
 		}
 
 		function getPronunciations(i) {
@@ -375,19 +389,42 @@
 				.filter(v => v);
 		}
 
+		function semanticPlaceholder(containerId) {
+			return containerId === "avoidFields" ? "un mot à éviter" : "un mot de référence";
+		}
+
 		// Bouton "+" : ajoute un champ texte supplementaire
-		function addSemanticField(containerId) {
+		function addSemanticField(containerId, shouldFocus = true) {
 			const container = document.getElementById(containerId);
 			const first = container.querySelector("input");
 			const div = document.createElement("div");
 			div.className = "semantic-field";
 			const input = document.createElement("input");
 			input.type = "text";
-			input.placeholder = first.placeholder;
+			input.placeholder = first ? first.placeholder : semanticPlaceholder(containerId);
 			input.setAttribute("list", "wordSuggestions");
 			div.appendChild(input);
+			
+			// Ajouter un bouton "-" pour supprimer ce champ
+			const removeBtn = document.createElement("button");
+			removeBtn.type = "button";
+			removeBtn.className = "add-field-button";
+			removeBtn.textContent = "-";
+			removeBtn.style.marginLeft = "4px";
+			removeBtn.onclick = function() {
+				div.remove();
+			};
+			div.appendChild(removeBtn);
+			
 			container.appendChild(div);
-			input.focus();
+			if (shouldFocus) input.focus();
+		}
+
+		function ensureSemanticField(containerId) {
+			const container = document.getElementById(containerId);
+			if (!container.querySelector("input")) {
+				addSemanticField(containerId, false);
+			}
 		}
 
 		// "Commence par" facon Scrabble : * = une lettre quelconque.
@@ -464,6 +501,7 @@
 					if (k === 0) div.querySelector("input").value = "";
 					else div.remove();
 				});
+				ensureSemanticField(id);
 			}
 			document.getElementById("rhymeWith").value = "";
 			document.getElementById("syllableSlider").value = 0;
@@ -539,7 +577,6 @@
 						if (cat === "verb") cat = DB.isInfinitive[i] ? "verb-inf" : "verb-conj";
 						if (!natureValues.has(cat)) continue;
 					}
-
 					if (rhymeSet && !rhymeSet.has(i)) continue;
 
 					if (freqFilterActive) {
@@ -810,6 +847,7 @@
 				<div id="evokeFields">
 					<div class="semantic-field">
 						<input type="text" placeholder="un mot de référence" list="wordSuggestions">
+						<button type="button" class="add-field-button" onclick="this.parentElement.remove()" style="margin-left: 4px;">-</button>
 					</div>
 				</div>
 				<button type="button" class="add-field-button" onclick="addSemanticField('evokeFields')">+</button>
@@ -821,6 +859,7 @@
 				<div id="avoidFields">
 					<div class="semantic-field">
 						<input type="text" placeholder="un mot à éviter" list="wordSuggestions">
+						<button type="button" class="add-field-button" onclick="this.parentElement.remove()" style="margin-left: 4px;">-</button>
 					</div>
 				</div>
 				<button type="button" class="add-field-button" onclick="addSemanticField('avoidFields')">+</button>
@@ -831,8 +870,8 @@
 				<input type="text" id="rhymeWith" placeholder="Entrez un mot pour rimer avec" list="wordSuggestions">
 				<div id="rhymeEnding" class="hint"></div>
 				<div id="rhymeWarning" class="warning"></div>
-				<label for="syllableSlider" class="slider-label">sur combien de phonèmes au minimum : <span id="syllableValue">0</span></label>
-				<input type="range" id="syllableSlider" name="syllableSlider" min="0" max="5" value="0" oninput="updateSyllableValue(this.value); updateRhymeEnding();">
+				<label for="syllableSlider" class="slider-label">sur combien de phonèmes au minimum : <span id="syllableValue">1</span></label>
+				<input type="range" id="syllableSlider" name="syllableSlider" min="0" max="5" value="1" oninput="updateSyllableValue(this.value); updateRhymeEnding();">
 			</div>
 
 			<div class="search-section">
