@@ -8,3 +8,7 @@ clairement séparer les homographes/homophones pour les fréquences et les natur
 "thé" a seulement /t/ pour prononciation (possiblement symptôme d'un problème plus global)
 
 des avertissements concernant "n'évoque pas" apparaissent dans la section "évoque"
+
+l'UI sur smartphone est pas incroyable pour plein de raisons
+
+quand on cherche avec un nombre "singulier" on peut tomber sur "triages" "labourages" etc, pourquoi ?
