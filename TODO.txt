@@ -12,3 +12,7 @@ des avertissements concernant "n'évoque pas" apparaissent dans la section "évo
 l'UI sur smartphone est pas incroyable pour plein de raisons
 
 quand on cherche avec un nombre "singulier" on peut tomber sur "triages" "labourages" etc, pourquoi ?
+
+une option pour que avec "termine par" pareil que "commence par" et/ou un caractère pour un nombre arbitraire de lettres inconnues
+
+rimes : les suggestions devraient comprendre à la fois les mots similaires par leurs débuts et leurs fins
