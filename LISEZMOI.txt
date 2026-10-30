@@ -1,0 +1,46 @@
+Outil de recherche de mots
+==========================
+
+Un dictionnaire des rimes pour le français, avec des critères en plus : nombre de
+syllabes, nature, genre, nombre, fréquence, début ou fin du mot, nombre de lettres,
+et un tri par proximité de sens avec des mots de référence ("évoque" / "n'évoque pas").
+
+Version en ligne : https://nurykabe.com/dump/tools/chercheMots/ss/
+Présentation     : https://nurykabe.com/dump/tools/chercheMots/
+
+Utilisation hors ligne
+----------------------
+Sous Windows, lancer run.bat (Python doit être installé) : il démarre un petit
+serveur local et ouvre http://localhost:8000/index.html dans le navigateur.
+Ailleurs : "python -m http.server 8000" dans ce dossier, puis ouvrir cette adresse.
+(Ouvrir index.html directement par double-clic ne marche pas : le navigateur
+refuse alors de charger les fichiers de données.)
+
+Fichiers nécessaires : index.html, sw.js, words_meta.json, vectors.bin.
+
+Données
+-------
+words_meta.json et vectors.bin (environ 205 000 formes) sont construits par
+build_lexicon.py, à partir de :
+
+  - GLÀFF 1.2.2 (F. Sajous, N. Hathout, B. Calderone, CLLE-ERSS), construit à partir
+    du Wiktionnaire, licence CC BY-SA 3.0
+    http://redac.univ-tlse2.fr/lexiques/glaff.html
+  - Morphalou 3.1 (ATILF / CNRS), licence LGPL-LR
+    https://www.ortolang.fr/market/lexicons/morphalou
+  - Lexique 3.83 (B. New, C. Pallier et al.), licence CC BY-SA 4.0
+    http://www.lexique.org
+  - vecteurs fastText cc.fr.300 (Facebook AI Research), licence CC BY-SA 3.0
+    https://fasttext.cc/docs/en/crawl-vectors.html
+  - prononciations complémentaires : gruut (https://github.com/rhasspy/gruut)
+    et le CMUdict français de CMU Sphinx
+
+Ces fichiers de données sont des œuvres dérivées et sont redistribués sous les mêmes
+conditions (CC BY-SA). Le texte de licence de GLÀFF, qui doit accompagner toute
+redistribution, est joint dans LISEZMOI_GLAFF.txt.
+
+Le code de construction (build_lexicon.py) et les corrections manuelles
+(corrections.tsv, appliquées à chaque reconstruction) sont dans le dépôt :
+https://github.com/Morusque/chercheMots
+
+C'est un prototype : il contient sûrement encore des erreurs.

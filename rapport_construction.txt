@@ -1,5 +1,5 @@
-GLAFF : 1406857 lignes, 1343032 retenues (63s)
-Morphalou : 976570 formes, 970129 retenues (27s)
+GLAFF : 1406857 lignes, 1343032 retenues (66s)
+Morphalou : 976570 formes, 970129 retenues (25s)
 Lexique : 142694 lignes, 142345 retenues
 Graphies sans ligature fusionnees (coeur -> cœur) : 857
 Entrees (forme, nature) avant selection : 1266133
@@ -13,7 +13,7 @@ Phonetisation automatique (gruut) : 13160/13160 formes (0s)
 Prononciations par source : {'GLAFF': 143041, 'Lexique': 14560, 'pluriel': 1901, 'Morphalou': 17446, 'gruut': 14285, 'meme forme': 12772, 'cmudict': 693}
 Frequences par source : {'Lexique': 123383, 'GLAFF (corpus)': 36231, 'estimee (rang fastText)': 45084}
 Corrections manuelles appliquees : 3
-Vecteurs lus : 160790 (23s)
+Vecteurs lus : 160790 (24s)
 
 --- Bilan ---
 Entrees : 204696
@@ -70,4 +70,4 @@ Exemples de prononciations differentes (ancienne -> nouvelle) :
   taquinerie : tt aa kk ii nn ee rr ii -> tt aa kk ii nn rr ii
   vaudevilles : vv oo dd ee vv ii ll -> vv oo dd vv ii ll
 
-Termine en 155s
+Termine en 156s
