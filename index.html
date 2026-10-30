@@ -194,7 +194,7 @@
     <script>
 		// Incrementer quand words_meta.json / vectors.bin sont regeneres :
 		// l'URL change et le service worker retelecharge les donnees.
-		const DATA_VERSION = 4;
+		const DATA_VERSION = 5;
 		const MAX_DISPLAYED_RESULTS = 500;
 		const MAX_SUGGESTIONS = 15;
 
@@ -205,8 +205,14 @@
 			ee: "ə", ei: "e", eu: "ø", ff: "f", gg: "g", gn: "ɲ", ii: "i",
 			in: "ɛ̃", jj: "ʒ", kk: "k", ll: "l", mm: "m", nn: "n", oe: "œ",
 			on: "ɔ̃", oo: "o", ou: "u", pp: "p", rr: "ʁ", ss: "s", tt: "t",
-			un: "œ̃", uu: "y", uy: "ɥi", vv: "v", ww: "w", yy: "j", zz: "z",
+			un: "œ̃", uu: "y", uy: "ɥ", vv: "v", ww: "w", yy: "j", zz: "z", ng: "ŋ",
 		};
+
+		// Cle de recherche : "cœur" et "coeur" (ou "aujourd'hui" et "aujourd’hui")
+		// doivent se retrouver, quelle que soit la graphie tapee
+		function searchKey(word) {
+			return word.toLowerCase().replace(/œ/g, "oe").replace(/æ/g, "ae").replace(/’/g, "'");
+		}
 
 		// Base de mots chargee en memoire (tableaux paralleles, voir build_data.py)
 		let DB = null;
@@ -245,17 +251,33 @@
 
 			const meta = JSON.parse(new TextDecoder().decode(metaBytes));
 
-			// vectors.bin : Float32[count] (echelles) puis Int8[count*dims]
+			// vectors.bin : Float32[vectorCount] (echelles) puis les vecteurs quantifies,
+			// sur 8 bits ou sur 4 bits (deux composantes par octet, decalees de +8).
+			// vecIndex[i] : ligne du vecteur du mot i (-1 : aucun), partagee par les homographes.
 			const vecBuffer = vecBytes.buffer.slice(vecBytes.byteOffset, vecBytes.byteOffset + vecBytes.byteLength);
-			const scales = new Float32Array(vecBuffer, 0, meta.count);
-			const q = new Int8Array(vecBuffer, meta.count * 4, meta.count * meta.dims);
+			const vectorCount = meta.vectorCount ?? meta.count;
+			const scales = new Float32Array(vecBuffer, 0, vectorCount);
+			let q;
+			if (meta.vectorBits === 4) {
+				const packed = new Uint8Array(vecBuffer, vectorCount * 4, vectorCount * meta.dims / 2);
+				q = new Int8Array(vectorCount * meta.dims);
+				for (let k = 0; k < packed.length; k++) {
+					q[2 * k] = (packed[k] & 15) - 8;
+					q[2 * k + 1] = (packed[k] >> 4) - 8;
+				}
+			} else {
+				q = new Int8Array(vecBuffer, vectorCount * 4, vectorCount * meta.dims);
+			}
+			const vecIndex = meta.vecIndex
+				? Int32Array.from(meta.vecIndex)
+				: Int32Array.from({ length: meta.count }, (_, i) => i);
 
-			// Index mot -> liste des indices (homographes inclus)
+			// Index cle de recherche -> liste des indices (homographes inclus)
+			const keys = meta.words.map(searchKey);
 			const wordIndex = new Map();
 			for (let i = 0; i < meta.count; i++) {
-				const w = meta.words[i].toLowerCase();
-				if (!wordIndex.has(w)) wordIndex.set(w, []);
-				wordIndex.get(w).push(i);
+				if (!wordIndex.has(keys[i])) wordIndex.set(keys[i], []);
+				wordIndex.get(keys[i]).push(i);
 			}
 
 			// Detection des infinitifs : un verbe est a l'infinitif s'il est son
@@ -281,7 +303,7 @@
 				}
 			}
 
-			DB = { ...meta, scales, q, wordIndex, verbNature, isInfinitive, verbLemmas };
+			DB = { ...meta, keys, scales, q, vecIndex, wordIndex, verbNature, isInfinitive, verbLemmas };
 		}
 
 		function getPronunciations(i) {
@@ -294,7 +316,7 @@
 		// avec un mot de 2 phonemes, d'un cote ou de l'autre, agit comme 2).
 		// Renvoie null si la prononciation du mot de reference est inconnue.
 		function findRhymeIndices(wordToRhyme, phonemeCount) {
-			wordToRhyme = wordToRhyme.toLowerCase();
+			wordToRhyme = searchKey(wordToRhyme);
 
 			// Prononciations de reference : tous les homographes, en tableaux de phonemes
 			const refProns = [];
@@ -333,9 +355,10 @@
 
 		// Premier vecteur disponible pour un mot donne, ou null
 		function getWordVector(word) {
-			for (const ri of DB.wordIndex.get(word) || []) {
-				if (DB.scales[ri] > 0) {
-					return { q: DB.q.subarray(ri * DB.dims, (ri + 1) * DB.dims), scale: DB.scales[ri] };
+			for (const ri of DB.wordIndex.get(searchKey(word)) || []) {
+				const v = DB.vecIndex[ri];
+				if (v >= 0 && DB.scales[v] > 0) {
+					return { q: DB.q.subarray(v * DB.dims, (v + 1) * DB.dims), scale: DB.scales[v] };
 				}
 			}
 			return null;
@@ -369,14 +392,14 @@
 			const dims = DB.dims;
 			const distances = new Float64Array(indices.length);
 			for (let k = 0; k < indices.length; k++) {
-				const i = indices[k];
-				const scale = DB.scales[i];
+				const v = DB.vecIndex[indices[k]];
+				const scale = v >= 0 ? DB.scales[v] : 0;
 				if (scale === 0) {
 					distances[k] = Infinity; // pas de vecteur pour ce mot
 					continue;
 				}
 				let net = 0;
-				const off = i * dims;
+				const off = v * dims;
 				for (const ref of refs) {
 					let dot = 0;
 					for (let d = 0; d < dims; d++) {
@@ -503,7 +526,7 @@
 				return;
 			}
 			const endings = new Set();
-			const wordEntries = DB.wordIndex.get(word) || [];
+			const wordEntries = DB.wordIndex.get(searchKey(word)) || [];
 			for (const ri of wordEntries) {
 				for (const pron of getPronunciations(ri)) {
 					const tokens = pron.split(" ");
@@ -560,7 +583,7 @@
 
 			try {
 				// Collect search criteria
-				const startsWithPattern = document.getElementById("startsWith").value.trim().toLowerCase();
+				const startsWithPattern = searchKey(document.getElementById("startsWith").value.trim());
 				const startsWithMatcher = buildStartsWithMatcher(startsWithPattern);
 				const lettersMin = parseInt(document.getElementById("lettersMin").value) || 0;
 				const lettersMaxRaw = parseInt(document.getElementById("lettersMax").value);
@@ -599,7 +622,7 @@
 				// Filtrage en un seul passage sur toute la base
 				const indices = [];
 				for (let i = 0; i < DB.count; i++) {
-					if (startsWithMatcher && !startsWithMatcher(DB.words[i].toLowerCase())) continue;
+					if (startsWithMatcher && !startsWithMatcher(DB.keys[i])) continue;
 
 					if (lettersFilterActive) {
 						const len = countLetters(DB.words[i]);
@@ -755,15 +778,16 @@
 		// la correspondance se fait par la fin du mot plutot que par le debut.
 		function updateSuggestions(text, fromEnd) {
 			const datalist = document.getElementById("wordSuggestions");
-			text = text.trim().toLowerCase();
+			text = searchKey(text.trim());
 			if (text.length < 2 || !DB) {
 				datalist.innerHTML = "";
 				return;
 			}
 			const best = new Map(); // mot -> meilleure frequence
 			for (let i = 0; i < DB.count; i++) {
+				const key = DB.keys[i];
+				if (fromEnd ? !key.endsWith(text) : !key.startsWith(text)) continue;
 				const w = DB.words[i];
-				if (fromEnd ? !w.endsWith(text) : !w.startsWith(text)) continue;
 				const f = DB.freqs[i];
 				if (!best.has(w) || f > best.get(w)) best.set(w, f);
 			}

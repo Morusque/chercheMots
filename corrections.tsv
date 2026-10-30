@@ -1,0 +1,23 @@
+# Corrections manuelles, appliquees par build_lexicon.py apres l'assemblage des sources.
+# C'est ici (et non dans words_meta.json) qu'il faut corriger la base : les corrections
+# survivent ainsi a chaque reconstruction.
+#
+# Une ligne par correction, colonnes separees par une tabulation :
+#   mot <TAB> nature <TAB> champ=valeur;champ=valeur
+#   mot <TAB> nature <TAB> supprimer
+# nature : noun, adjective, adverb, verb, other (celle de l'entree a corriger ;
+#          une entree absente est creee)
+# champs : prononciation (phonemes du projet separes par des espaces, variantes par |),
+#          frequence (occurrences par million), lemme, genre (m, f ou vide),
+#          nombre (s, p ou vide), nature
+#
+# Exemples :
+#   thé	noun	prononciation=tt ei
+#   untel	other	supprimer
+
+# GLAFF prononce la lettre comme l'abreviation de "heure"
+h	noun	prononciation=aa ch
+
+# Morphalou range les presentatifs parmi les verbes
+voici	verb	supprimer
+voilà	verb	supprimer

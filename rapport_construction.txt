@@ -1,0 +1,73 @@
+GLAFF : 1406857 lignes, 1343032 retenues (63s)
+Morphalou : 976570 formes, 970129 retenues (27s)
+Lexique : 142694 lignes, 142345 retenues
+Graphies sans ligature fusionnees (coeur -> cœur) : 857
+Entrees (forme, nature) avant selection : 1266133
+Index fastText : 2000000 mots
+Entrees avec vecteur fastText : 239087 (sans vecteur, ecartees : 1027046)
+Echelle GLAFF -> Lexique : x0.853 (mediane sur 108556 entrees)
+Frequence estimee depuis le rang fastText : log10(f) = 5.35 -1.18*log10(rang) (156824 formes)
+Nombre d'entrees selon le seuil de frequence : 0 -> 239087, 0.001 -> 223734, 0.003 -> 217576, 0.01 -> 204698, 0.03 -> 179796, 0.1 -> 163180
+Entrees retenues (seuil 0.01) : 204698
+Phonetisation automatique (gruut) : 13160/13160 formes (0s)
+Prononciations par source : {'GLAFF': 143041, 'Lexique': 14560, 'pluriel': 1901, 'Morphalou': 17446, 'gruut': 14285, 'meme forme': 12772, 'cmudict': 693}
+Frequences par source : {'Lexique': 123383, 'GLAFF (corpus)': 36231, 'estimee (rang fastText)': 45084}
+Corrections manuelles appliquees : 3
+Vecteurs lus : 160790 (23s)
+
+--- Bilan ---
+Entrees : 204696
+Par nature : {'noun': 78093, 'verb': 69907, 'other': 927, 'adjective': 53702, 'adverb': 2067}
+Sans prononciation : 0
+Sans lemme : 1
+Noms/adjectifs sans genre unique (epicenes compris) : 20762
+Noms/adjectifs sans nombre unique (invariables compris) : 4951
+Sans vecteur : 0
+Ecrit vectors.bin : 160790 vecteurs (24.8 Mo)
+Ecrit words_meta.json (14.2 Mo)
+
+--- Validation de la quantification (4 bits) ---
+  'musique': 10 plus proches voisins identiques a 90%
+  'musique': 30 plus proches voisins identiques a 90%
+  'chanson': 10 plus proches voisins identiques a 90%
+  'chanson': 30 plus proches voisins identiques a 93%
+  'amour': 10 plus proches voisins identiques a 100%
+  'amour': 30 plus proches voisins identiques a 93%
+  'mer': 10 plus proches voisins identiques a 100%
+  'mer': 30 plus proches voisins identiques a 90%
+  'acide': 10 plus proches voisins identiques a 80%
+  'acide': 30 plus proches voisins identiques a 83%
+
+--- Comparaison avec l'ancienne base (coeur = cœur) ---
+Formes : ancienne 85141, nouvelle 160790, communes 84204, retirees 937, ajoutees 76586
+Exemples de formes retirees : Acide, adherer, ameliorer, assecher, bails, belle-mères, brievement, ceans, chou-fleurs, consorte, creperies, debourser, decemment, decoder, decourager, defendre, degorger, delayer, demarrer, demontrer, depecher, depuceler, desideratas, detecter, devisser, eau-fortes, ecoeurer, egayer, emerger, enteter, eprendre, eteindre, evader, exterioriser, ferit, frequemment, gerer, hebergements, immediats, inne, lacher, leures, mechamment, meriter, moux, obeir, penes, piss, preciser, preserver, pur-sangs, reciproquement, regents, rememorer, resolument, reviseurs, savoir-faires, serigraphie, soux, suffie
+Exemples de formes ajoutees : aa, ajaccienne, antennistes, arbustifs, auto-érotique, baronnes, blablaté, brûlants, captivante, charlatanesque, cisplatine, comportementales, coproduction, crédule, deusio, downgrader, définitionnel, désinformés, enfournes, exorbitantes, filtrantes, fromagère, glacerie, guitoune, hollandaises, hémoglobinémie, individualisante, interopérabilité, jeune-homme, latinisant, luné, marceline, mignonnement, motoréacteur, méliphage, nobélisable, octavia, ouvriérisme, passe-muraille, photoluminescents, pochon, poëles, préexistent, pénien, ramequin, refonctionner, retsina, réactualisons, rétroéclairée, scientistes, skiabilité, spiritualiser, supposément, taboue, tic-tac, tric, téréphtalique, viandards, xénophilie, électronarcose
+Prononciations : 50302/75669 formes communes ont au moins une variante identique (66.5%)
+Exemples de prononciations differentes (ancienne -> nouvelle) :
+  abaissement : aa bb ai ss ee mm an -> aa bb ai ss mm an
+  amolli : aa mm oo ll ii -> aa mm au ll ii
+  automobiliste : oo tt oo mm oo bb ii ll ii ss tt -> au tt au mm au bb ii ll ii ss tt / oo tt oo mm au bb ii ll ii ss tt
+  brodera : bb rr oo dd ee rr aa -> bb rr au dd ee rr aa
+  cloisonnements : kk ll ww aa zz oo nn ee mm an -> kk ll ww aa zz au nn mm an
+  conjuguent : kk on jj uu gg ee -> kk on jj uu gg / kk on yy uu gg
+  créés : kk rr ai ei -> kk rr ei ei
+  débuteront : dd ai bb uu tt ee rr on -> dd ei bb uu tt ee rr on
+  déniés : dd ai nn yy ei -> dd ei nn yy ei
+  embellir : an bb ai ll ii rr -> an bb ei ll ii rr
+  excréments : ai kk ss kk rr ai mm an -> ai kk ss kk rr ei mm an
+  frottes : ff rr oo tt -> ff rr au tt / ff rr au tt ee
+  horticulteur : oo rr tt ii kk uu ll tt oe rr -> au rr tt ii kk uu ll tt oe rr
+  interposent : in tt ai rr pp oo zz -> in tt ai rr pp au zz
+  marketings : mm aa rr kk ee tt ii ii gg -> mm aa rr kk ei tt ii ng
+  métrage : mm ai tt rr aa jj -> mm ei tt rr aa jj
+  orchestrent : oo rr kk ai ss tt rr -> au rr kk ai ss tt rr
+  pinceaux : pp in ss au -> pp in ss oo
+  progressistes : pp rr oo gg rr ai ss ii ss tt -> pp rr oo gg rr ei ss ii ss tt
+  pétri : pp ai tt rr ii -> pp ei tt rr ii
+  reproduit : rr ee pp rr oo dd uy ii -> rr ee pp rr au dd uy ii
+  répulsion : rr ai pp uu ll ss yy on -> rr ei pp uu ll ss yy on
+  sonnera : ss oo nn ee rr aa -> ss au nn ee rr aa
+  taquinerie : tt aa kk ii nn ee rr ii -> tt aa kk ii nn rr ii
+  vaudevilles : vv oo dd ee vv ii ll -> vv oo dd vv ii ll
+
+Termine en 155s

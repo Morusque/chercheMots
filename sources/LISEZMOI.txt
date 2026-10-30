@@ -1,0 +1,39 @@
+Sources utilisees par build_lexicon.py
+=====================================
+
+Ce dossier n'est pas versionne (trop lourd). Pour le reconstituer :
+
+glaff/
+  GLÀFF 1.2.2, lexique flexionnel du français construit à partir du Wiktionnaire
+  (CLLE-ERSS : F. Sajous, N. Hathout, B. Calderone).
+  Licence : Creative Commons BY-SA 3.0. Toute redistribution, même modifiée,
+  doit être accompagnée de glaff/LISEZMOI.txt.
+  Page officielle : http://redac.univ-tlse2.fr/lexiques/glaff.html
+  Copie utilisée (dépôt CNRS sur Hugging Face) :
+    https://huggingface.co/datasets/datasets-CNRS/GLAFF/resolve/main/data/glaff-1.2.2.txt
+    https://huggingface.co/datasets/datasets-CNRS/GLAFF/resolve/main/data/LISEZMOI.txt
+    https://huggingface.co/datasets/datasets-CNRS/GLAFF/resolve/main/data/README.txt
+
+morphalou/
+  Morphalou 3.1, lexique morphologique ouvert du français (ATILF / CNRS).
+  Licence : LGPL-LR.
+  Page officielle : https://www.ortolang.fr/market/lexicons/morphalou
+  Copie utilisée (dépôt CNRS sur Hugging Face) :
+    https://huggingface.co/datasets/datasets-CNRS/Morphalou/resolve/main/Morphalou3.1_formatCSV_toutEnUn.zip
+  Extraire Morphalou3.1_formatCSV_toutEnUn/Morphalou3.1_CSV.csv dans morphalou/.
+
+fasttext_index.tsv
+  Généré par : python index_fasttext.py
+  (à partir de cc.fr.300.vec, https://fasttext.cc/docs/en/crawl-vectors.html,
+  licence CC BY-SA 3.0)
+
+gruut_cache.json
+  Prononciations calculées par gruut (pip install gruut[fr]) pour les mots
+  qu'aucun lexique ne transcrit. Généré automatiquement, peut être supprimé.
+
+Les autres sources sont à la racine du projet : lexique_phon.csv (extrait de
+Lexique 3.83, http://www.lexique.org, CC BY-SA 4.0) et cmudict_fr.txt.
+
+Note : les fichiers words_meta.json et vectors.bin dérivent de ces sources ;
+s'ils sont publiés en ligne, il faut mentionner GLÀFF, Lexique et fastText
+(attribution, partage dans les mêmes conditions).

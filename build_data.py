@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 """
+ANCIEN PIPELINE, remplace par build_lexicon.py (base reconstruite depuis GLAFF,
+Morphalou, Lexique et fastText). Garde pour reference et comparaison.
+
 Convertit words_database.xml (source maitresse, ~217 Mo) en deux fichiers compacts
 charges par index.html, en enrichissant au passage les donnees :
 

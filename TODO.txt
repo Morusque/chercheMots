@@ -1,18 +1,10 @@
 
-~9 400 mots restent sans prononciation : ajouter dans build_data.py une propagation morphologique plus large (formes verbales régulières, pluriels/féminins, composés avec tiret comme "couche-tôt"), puis un fallback graphème->phonème offline type phonemizer/espeak. Conserver l'alphabet interne pour les calculs et convertir seulement l'affichage en API/IPA côté interface.
-
-~14 200 mots sans fréquence connue : d'abord propager/lisser depuis le lemme ou une forme proche quand c'est fiable, puis envisager une source externe type wordfreq. Côté interface, prévoir une option "inclure les fréquences inconnues" au lieu de les assimiler uniquement à 0.
-
-clairement séparer les homographes/homophones pour les fréquences et les natures : par exemple "est" ne devrait pas apparaître comme le nom commun le plus fréquent si la fréquence provient surtout du verbe conjugué. Vérifier les fréquences par catégorie Lexique avant de les copier sur toutes les entrées XML d'une même graphie.
-
-"thé" a seulement /t/ pour prononciation (possiblement symptôme d'un problème plus global)
-
 des avertissements concernant "n'évoque pas" apparaissent dans la section "évoque"
 
 l'UI sur smartphone est pas incroyable pour plein de raisons
 
-quand on cherche avec un nombre "singulier" on peut tomber sur "triages" "labourages" etc, pourquoi ?
-
-une option pour que avec "termine par" pareil que "commence par" et/ou un caractère pour un nombre arbitraire de lettres inconnues
-
 rimes : les suggestions devraient comprendre à la fois les mots similaires par leurs débuts et leurs fins
+
+base reconstruite (build_lexicon.py) : relire rapport_construction.txt et ajouter dans corrections.tsv les erreurs repérées à l'usage (prononciations GLÀFF ou gruut fautives, natures douteuses)
+
+mettre en ligne la nouvelle version (index.html, sw.js, words_meta.json, vectors.bin) en mentionnant les sources : GLÀFF, Morphalou, Lexique, fastText (licences CC BY-SA / LGPL-LR, voir sources/LISEZMOI.txt)

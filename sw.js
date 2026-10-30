@@ -31,7 +31,13 @@ self.addEventListener("fetch", event => {
 				const cached = await cache.match(event.request);
 				if (cached) return cached;
 				const response = await fetch(event.request);
-				if (response.ok) cache.put(event.request, response.clone());
+				if (response.ok) {
+					// les versions precedentes du meme fichier ne servent plus
+					for (const old of await cache.keys()) {
+						if (new URL(old.url).pathname === url.pathname) await cache.delete(old);
+					}
+					cache.put(event.request, response.clone());
+				}
 				return response;
 			})
 		);
