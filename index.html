@@ -434,16 +434,30 @@
 			}
 		}
 
-		// "Commence par" facon Scrabble : * = une lettre quelconque.
+		// "Commence par" facon Scrabble : * = une lettre quelconque,
+		// . (un ou plusieurs points) = un nombre indefini de lettres.
+		// Sans point, le motif reste un simple prefixe ; avec, il decrit le mot
+		// entier (ex : "...tion" = finit par tion, "ch...eau" = commence par ch
+		// et finit par eau).
 		// Renvoie une fonction de test, ou null si pas de motif.
 		function buildStartsWithMatcher(pattern) {
 			if (!pattern) return null;
-			if (!pattern.includes("*")) {
+			const hasDots = pattern.includes(".");
+			if (!hasDots && !pattern.includes("*")) {
 				return word => word.startsWith(pattern);
 			}
-			const escaped = pattern.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".");
-			const regex = new RegExp("^" + escaped);
+			const escaped = pattern
+				.replace(/[+?^${}()|[\]\\]/g, "\\$&")
+				.replace(/\.+/g, "\u0000")
+				.replace(/\*/g, ".")
+				.replace(/\u0000/g, ".*");
+			const regex = new RegExp("^" + escaped + (hasDots ? "$" : ""));
 			return word => regex.test(word);
+		}
+
+		// Nombre de lettres d'un mot (on ignore espaces, tirets, apostrophes...)
+		function countLetters(word) {
+			return word.replace(/[^a-zA-Zà-öø-ÿÀ-ÖØ-Þœæ]/g, "").length;
 		}
 
 		// --- Slider de frequence a deux bouts (echelle logarithmique) ---
@@ -524,6 +538,8 @@
 			updateSyllableValue(0);
 			updateRhymeEnding();
 			document.getElementById("startsWith").value = "";
+			document.getElementById("lettersMin").value = "";
+			document.getElementById("lettersMax").value = "";
 			document.getElementById("rhymeWarning").textContent = "";
 			document.getElementById("semanticWarning").textContent = "";
 			document.getElementById("wordSuggestions").innerHTML = "";
@@ -546,6 +562,10 @@
 				// Collect search criteria
 				const startsWithPattern = document.getElementById("startsWith").value.trim().toLowerCase();
 				const startsWithMatcher = buildStartsWithMatcher(startsWithPattern);
+				const lettersMin = parseInt(document.getElementById("lettersMin").value) || 0;
+				const lettersMaxRaw = parseInt(document.getElementById("lettersMax").value);
+				const lettersMax = lettersMaxRaw > 0 ? lettersMaxRaw : Infinity;
+				const lettersFilterActive = lettersMin > 0 || isFinite(lettersMax);
 				// tout coche = aucun filtre (sinon les mots aux attributs inconnus seraient exclus)
 				let syllablesSelected = Array.from(document.querySelectorAll('input[name="syllables"]:checked')).map(cb => parseInt(cb.value));
 				if (syllablesSelected.length === document.querySelectorAll('input[name="syllables"]').length) {
@@ -580,6 +600,11 @@
 				const indices = [];
 				for (let i = 0; i < DB.count; i++) {
 					if (startsWithMatcher && !startsWithMatcher(DB.words[i].toLowerCase())) continue;
+
+					if (lettersFilterActive) {
+						const len = countLetters(DB.words[i]);
+						if (len < lettersMin || len > lettersMax) continue;
+					}
 
 					if (syllablesSelected.length) {
 						const syll = DB.syllables[i];
@@ -892,7 +917,14 @@
 
 			<div class="search-section">
 				<h3>Commence par</h3>
-				<input type="text" id="startsWith" placeholder="ex : b*lle (* = lettre libre)">
+				<input type="text" id="startsWith" placeholder="ex : b*lle, ...tion, ch...eau">
+				<div class="hint">* = une lettre libre, ... = un nombre indéfini de lettres (ex : ...tion = finit par « tion »)</div>
+			</div>
+
+			<div class="search-section">
+				<h3>Nombre de lettres</h3>
+				<label class="slider-label">minimum : <input type="number" id="lettersMin" min="1" style="width: 4em;"></label>
+				<label class="slider-label">maximum : <input type="number" id="lettersMax" min="1" style="width: 4em;"></label>
 			</div>
 
 		</div>
